@@ -1,0 +1,58 @@
+name: Update README.md
+
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: '0 8 * * *'
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Update README.md
+        run: pnpm run update-readme
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_USER_PASSWORD: ${{ secrets.GMAIL_USER_PASSWORD }}
+          MAIL_CC: ${{ secrets.MAIL_CC }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "solidsnk86"
+          git config user.email "calcagni.gabriel86@gmail.com"
+          git add .
+          git diff --quiet && git diff --staged --quiet || git commit -m "🤖[neoBot] Updated README and sended emails with weather data location"
+          git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
